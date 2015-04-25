@@ -17,6 +17,7 @@
 package fr.javatic.ratpack.jwtauth;
 
 import com.auth0.jwt.JWTSigner;
+import com.google.inject.Injector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.handling.Context;
@@ -28,12 +29,15 @@ public class LoginHandler<T> implements Handler {
     private final static Logger LOGGER = LoggerFactory.getLogger(LoginHandler.class);
 
     private final JWTSigner jwtSigner;
-    private final JsonWebTokenModule.RealmConfig<T> config;
+    private final JWTAuthModule.RealmConfig<T> config;
+    private final Injector injector;
 
     public LoginHandler(JWTSigner jwtSigner,
-                        JsonWebTokenModule.RealmConfig<T> config) {
+                        JWTAuthModule.RealmConfig<T> config,
+                        Injector injector) {
         this.jwtSigner = jwtSigner;
         this.config = config;
+        this.injector = injector;
     }
 
     @Override
@@ -41,10 +45,11 @@ public class LoginHandler<T> implements Handler {
         try {
             final T credential = config.getInput(context);
             context.blocking(
-                () -> config.authenticate(credential)
+                () -> config.authenticate(injector, credential)
             ).onError(t -> {
                 if (t.getClass().equals(AuthenticationFailed.class)) {
-                    context.getResponse().status(401).send(t.getMessage());
+                    AuthenticationFailed failure = (AuthenticationFailed) t;
+                    context.getResponse().status(failure.getHttpStatus()).send(failure.getMessage());
                 }
             }).then(claims -> {
                 String token = jwtSigner.sign(claims.toMap());

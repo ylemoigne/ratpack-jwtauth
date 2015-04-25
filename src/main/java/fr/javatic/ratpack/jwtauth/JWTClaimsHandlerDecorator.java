@@ -18,9 +18,9 @@ package fr.javatic.ratpack.jwtauth;
 
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.JWTVerifyException;
+import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.handling.HandlerDecorator;
 import ratpack.registry.Registries;
@@ -39,33 +39,32 @@ class JWTClaimsHandlerDecorator implements HandlerDecorator {
     private final JWTVerifier jwtVerifier;
     private final String header;
 
-    JWTClaimsHandlerDecorator(JWTVerifier jwtVerifier, String header) {
+    @Inject
+    JWTClaimsHandlerDecorator(JWTVerifier jwtVerifier, JWTAuthModule.Config config) {
         this.jwtVerifier = jwtVerifier;
-        this.header = header;
+        this.header = config.getHeader();
     }
 
     @Override
     public Handler decorate(Registry serverRegistry, Handler rest) throws Exception {
-        return this::handle;
-    }
+        return context -> {
+            String tokens = context.getRequest().getHeaders().get(this.header);
+            if (tokens == null) {
+                context.insert(rest);
+                return;
+            }
 
-    public void handle(Context context) throws Exception {
-        String tokens = context.getRequest().getHeaders().get(this.header);
-        if (tokens == null) {
-            context.next();
-            return;
-        }
+            try {
+                Map<String, Object> verify = jwtVerifier.verify(tokens);
+                JWTClaims claims = new JWTClaims(verify);
 
-        try {
-            Map<String, Object> verify = jwtVerifier.verify(tokens);
-            JWTClaims claims = new JWTClaims(verify);
-
-            context.next(Registries.just(claims));
-        } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | JWTVerifyException e) {
-            LOGGER.error("Failed to verify token", e);
-            context.getResponse().status(500).send();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+                context.insert(Registries.just(claims), rest);
+            } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | JWTVerifyException e) {
+                LOGGER.error("Failed to verify token", e);
+                context.getResponse().status(500).send();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
     }
 }

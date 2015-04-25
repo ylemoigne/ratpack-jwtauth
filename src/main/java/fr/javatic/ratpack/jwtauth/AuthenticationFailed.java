@@ -17,7 +17,18 @@
 package fr.javatic.ratpack.jwtauth;
 
 public final class AuthenticationFailed extends Exception {
-    public AuthenticationFailed(String message) {
+    private final int httpStatus;
+
+    public AuthenticationFailed(int httpStatus, String message) {
         super(message);
+        this.httpStatus = httpStatus;
+    }
+
+    public AuthenticationFailed(String message) {
+        this(401, message);
+    }
+
+    public int getHttpStatus() {
+        return httpStatus;
     }
 }

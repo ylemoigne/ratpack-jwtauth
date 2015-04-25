@@ -30,28 +30,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class JsonWebTokenModule extends ConfigurableModule<JsonWebTokenModule.Config> {
+public class JWTAuthModule extends ConfigurableModule<JWTAuthModule.Config> {
     @Override
     protected void configure() {
         Multibinder.newSetBinder(binder(), HandlerDecorator.class)
             .addBinding()
-            .toInstance(new JWTClaimsHandlerDecorator(
-                getProvider(JWTVerifier.class).get(),
-                getProvider(Config.class).get().header
-            ));
+            .to(JWTClaimsHandlerDecorator.class);
     }
 
     public static class Config {
-        private Map<Object, RealmConfig<?>> mapRealmToAuthenticationFunction = new HashMap<>();
+        private Map<Object, RealmConfig<?>> mapRealmToRealmConfig = new HashMap<>();
 
         private String secret = UUID.randomUUID().toString();
         private String header = "X-Authorization";
 
         public <T> Config authentication(Object realm,
-                                         AuthenticationFunction<T> function,
                                          Class<T> credentialType,
+                                         AuthenticationFunction<T> function,
                                          InputType inputType) {
-            this.mapRealmToAuthenticationFunction.put(realm, new RealmConfig<>(function, credentialType, inputType));
+            this.mapRealmToRealmConfig.put(realm, new InstanceRealmConfig<>(credentialType, function, inputType));
+            return this;
+        }
+
+        public <T> Config authentication(Object realm,
+                                         Class<T> credentialType,
+                                         Class<? extends AuthenticationFunction<T>> functionType,
+                                         InputType inputType) {
+            this.mapRealmToRealmConfig.put(realm, new TypeRealmConfig<>(credentialType, functionType, inputType));
             return this;
         }
 
@@ -64,16 +69,26 @@ public class JsonWebTokenModule extends ConfigurableModule<JsonWebTokenModule.Co
             this.header = header;
             return this;
         }
+
+        public String getHeader() {
+            return header;
+        }
     }
 
-    public static class RealmConfig<T> {
+    public interface RealmConfig<T> {
+        T getInput(Context context) throws Exception;
+
+        JWTClaims authenticate(Injector inject, T credential) throws AuthenticationFailed;
+    }
+
+    public static class InstanceRealmConfig<T> implements RealmConfig<T> {
         private final AuthenticationFunction<T> function;
         private final Class<T> credentialType;
         private final InputType inputType;
 
-        public RealmConfig(AuthenticationFunction<T> function,
-                           Class<T> credentialType,
-                           InputType inputType) {
+        public InstanceRealmConfig(Class<T> credentialType,
+                                   AuthenticationFunction<T> function,
+                                   InputType inputType) {
             this.function = function;
             this.credentialType = credentialType;
             this.inputType = inputType;
@@ -83,8 +98,30 @@ public class JsonWebTokenModule extends ConfigurableModule<JsonWebTokenModule.Co
             return this.inputType.getInput(context, this.credentialType);
         }
 
-        public JWTClaims authenticate(T credential) throws AuthenticationFailed {
+        public JWTClaims authenticate(Injector inject, T credential) throws AuthenticationFailed {
             return this.function.authenticate(credential);
+        }
+    }
+
+    public static class TypeRealmConfig<T> implements RealmConfig<T> {
+        private final Class<? extends AuthenticationFunction<T>> functionType;
+        private final Class<T> credentialType;
+        private final InputType inputType;
+
+        public TypeRealmConfig(Class<T> credentialType,
+                               Class<? extends AuthenticationFunction<T>> functionType,
+                               InputType inputType) {
+            this.functionType = functionType;
+            this.credentialType = credentialType;
+            this.inputType = inputType;
+        }
+
+        public T getInput(Context context) throws Exception {
+            return this.inputType.getInput(context, this.credentialType);
+        }
+
+        public JWTClaims authenticate(Injector injector, T credential) throws AuthenticationFailed {
+            return injector.getInstance(functionType).authenticate(credential);
         }
     }
 
@@ -104,8 +141,8 @@ public class JsonWebTokenModule extends ConfigurableModule<JsonWebTokenModule.Co
     @com.google.inject.Singleton
     private LoginHandlerProvider loginHandlerProvider(Config config, JWTSigner jwtSigner, Injector injector) {
         LoginHandlerProvider loginHandlerProvider = new LoginHandlerProvider();
-        config.mapRealmToAuthenticationFunction.forEach((realm, realmConfig) -> {
-            loginHandlerProvider.addAuthenticator(realm, new LoginHandler<>(jwtSigner, realmConfig));
+        config.mapRealmToRealmConfig.forEach((realm, realmConfig) -> {
+            loginHandlerProvider.addAuthenticator(realm, new LoginHandler<>(jwtSigner, realmConfig, injector));
         });
 
         return loginHandlerProvider;

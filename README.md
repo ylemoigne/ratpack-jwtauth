@@ -1,13 +1,28 @@
-# ratpack-livereload
-Provide a livereload server based on ratpack. Mainly intended to be embedded in another ratpack app.
+# ratpack-jwtauth
+Provide an easy to use Json Web Token authentication
 
 Usage
 ------
-    LiveReloadServer liveReloadServer = new LiveReloadServer(serverConfig.getBaseDir()
-                    .getFile()
-                    .resolve("app"));
-    liveReloadServer.start();
+Add the module to ratpack module through guice :
 
+        bindingsSpec.add(JsonWebTokenModule.class, config -> {
+            config.secret("someSalt");
+            config.header("X-Authentication");
+            config.authentication("default", UserRepository.class, AuthForm.class, InputType.JSON);
+        });
+
+Then to get the info :
+
+        Chain mustBeIdentifiedChain = apiChain.handler(ctx -> {
+            try {
+                JWTClaims claims = ctx.get(JWTClaims.class);
+                // check whatever you want
+                ctx.next();
+            } catch (NotInRegistryException e) {
+                ctx.getResponse().status(403);
+                ctx.render("Must be authentified");
+            }
+        });
 
 Dependency.
 ------
@@ -21,9 +36,10 @@ Gradle
     }
 
     dependencies {
-        compile 'fr.javatic.ratpack:ratpack-livereload:0.1'
+        compile 'fr.javatic.ratpack:ratpack-jwtauth:0.2'
     }
 
 Changelog.
 ------
-0.1   : Initial Release
+0.1 : Initial Release
+0.2 : Add ability for authentication function to return a custom http status code. Add ability to provide authentication function through injected class.
