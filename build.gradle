@@ -1,0 +1,139 @@
+/*
+ * Copyright (c) 2015 Yann Le Moigne.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+    id "java"
+    id "idea"
+    id "maven-publish"
+    id "com.jfrog.bintray" version "1.1"
+}
+
+if (!JavaVersion.current().java8Compatible) {
+    throw new IllegalStateException("Must be built with Java 8 or higher")
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'fr.javatic.ratpack'
+version = "0.1-SNAPSHOT"
+
+repositories {
+    jcenter()
+}
+
+def ratpackVersion = '0.9.15'
+
+dependencies {
+    compile "io.ratpack:ratpack-core:${ratpackVersion}"
+    compile "io.ratpack:ratpack-guice:${ratpackVersion}"
+    compile "io.ratpack:ratpack-jackson:${ratpackVersion}"
+    compile "com.auth0:java-jwt:2.0.1"
+
+    compile 'org.slf4j:slf4j-api:1.7.7'
+}
+
+idea {
+    project {
+        languageLevel "1.8"
+    }
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+def projectInfo = [
+        description: 'JSON Web Token Authentication module for ratpack',
+        url        : 'https://github.com/ylemoigne/ratpack-jwtauth',
+        issues     : 'https://github.com/ylemoigne/ratpack-jwtauth/issues',
+        tags       : ['livereload', 'ratpack'],
+        scm        : [
+                url     : "git@github.com:ylemoigne/ratpack-jwtauth.git",
+                mavenUrl: "scm:git:git@github.com:ylemoigne/ratpack-jwtauth.git",
+        ],
+        license    : [
+                shortName: 'Apache-2.0',
+                fullName : 'The Apache Software License, Version 2.0',
+                url      : 'http://www.apache.org/licenses/LICENSE-2.0.txt',
+        ]
+]
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            Artifact sourcesJar
+            //Artifact javadocJar
+
+            pom.withXml {
+                asNode().children().last() + {
+                    resolveStrategy = Closure.DELEGATE_FIRST
+
+                    name project.name
+                    description projectInfo.description
+                    url projectInfo.url
+
+                    scm {
+                        connection projectInfo.scm.mavenUrl
+                        developerConnection projectInfo.scm.mavenUrl
+                        url projectInfo.scm.url
+                    }
+
+                    licenses {
+                        license {
+                            name projectInfo.license.fullName
+                            url projectInfo.license.url
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name "Yann Le Moigne"
+                            email "ylemoigne@javatic.fr"
+                            organization "JavaTIC"
+                            organizationUrl "http://www.javatic.fr"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+bintray {
+    user = bintrayUser
+    key = bintrayKey
+    publications = ['mavenJava']
+    pkg {
+        repo = 'maven'
+        name = project.name
+        desc = projectInfo.description
+        websiteUrl = projectInfo.url
+        issueTrackerUrl = projectInfo.issues
+        vcsUrl = projectInfo.scm.url
+        licenses = [projectInfo.license.shortName]
+        labels = projectInfo.tags
+        version {
+            gpg {
+                sign = true
+                passphrase = gpgPassphrase
+            }
+        }
+    }
+}
