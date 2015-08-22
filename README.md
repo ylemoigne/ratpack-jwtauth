@@ -11,6 +11,12 @@ Add the module to ratpack module through guice :
             config.authentication("default", UserRepository.class, AuthForm.class, InputType.JSON);
         });
 
+Add login handler:
+        path("login") {
+            context.get(LoginHandlerProvider).handleLoginFor("default", context)
+        }
+
+
 Then to get the info :
 
         Chain mustBeIdentifiedChain = apiChain.handler(ctx -> {
