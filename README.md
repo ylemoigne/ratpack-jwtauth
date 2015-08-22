@@ -11,7 +11,8 @@ Add the module to ratpack module through guice :
             config.authentication("default", UserRepository.class, AuthForm.class, InputType.JSON);
         });
 
-Add login handler:
+Add login handler :
+
         path("login") {
             context.get(LoginHandlerProvider).handleLoginFor("default", context)
         }
