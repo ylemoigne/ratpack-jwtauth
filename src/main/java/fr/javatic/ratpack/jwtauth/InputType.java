@@ -16,8 +16,10 @@
 
 package fr.javatic.ratpack.jwtauth;
 
+import ratpack.exec.Blocking;
 import ratpack.handling.Context;
 import ratpack.jackson.Jackson;
+import ratpack.jackson.JsonParseOpts;
 
 public abstract class InputType {
     public final static InputType JSON = new JSONInputType();
@@ -28,14 +30,14 @@ public abstract class InputType {
     private static class JSONInputType extends InputType {
         @Override
         public <T> T getInput(Context context, Class<T> javaType) throws Exception {
-            return context.parse(Jackson.fromJson(javaType));
+            return Blocking.on(context.parse(Jackson.fromJson(javaType)));
         }
     }
 
     private static class FormInputType extends InputType {
         @Override
         public <T> T getInput(Context context, Class<T> javaType) throws Exception {
-            return context.parse(javaType);
+            return Blocking.on(context.parse(javaType));
         }
     }
 }

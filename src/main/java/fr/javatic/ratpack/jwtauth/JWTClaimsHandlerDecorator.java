@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ratpack.handling.Handler;
 import ratpack.handling.HandlerDecorator;
-import ratpack.registry.Registries;
 import ratpack.registry.Registry;
 
 import java.io.IOException;
@@ -58,7 +57,7 @@ class JWTClaimsHandlerDecorator implements HandlerDecorator {
                 Map<String, Object> verify = jwtVerifier.verify(tokens);
                 JWTClaims claims = new JWTClaims(verify);
 
-                context.insert(Registries.just(claims), rest);
+                context.insert(Registry.single(claims), rest);
             } catch (NoSuchAlgorithmException | InvalidKeyException | SignatureException | JWTVerifyException e) {
                 LOGGER.error("Failed to verify token", e);
                 context.getResponse().status(500).send();

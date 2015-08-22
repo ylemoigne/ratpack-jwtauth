@@ -35,12 +35,12 @@ repositories {
     jcenter()
 }
 
-def ratpackVersion = '0.9.15'
+def ratpackVersion = '0.9.19'
 
 dependencies {
     compile "io.ratpack:ratpack-core:${ratpackVersion}"
     compile "io.ratpack:ratpack-guice:${ratpackVersion}"
-    compile "io.ratpack:ratpack-jackson:${ratpackVersion}"
+    compile "io.ratpack:ratpack-jackson-guice:${ratpackVersion}"
     compile "com.auth0:java-jwt:2.0.1"
 
     compile 'org.slf4j:slf4j-api:1.7.7'
@@ -115,7 +115,7 @@ publishing {
     }
 }
 
-
+if (project.hasProperty('bintrayUser')) {
 bintray {
     user = bintrayUser
     key = bintrayKey
@@ -136,4 +136,5 @@ bintray {
             }
         }
     }
+}
 }

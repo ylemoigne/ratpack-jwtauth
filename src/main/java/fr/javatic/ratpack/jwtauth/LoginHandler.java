@@ -20,6 +20,7 @@ import com.auth0.jwt.JWTSigner;
 import com.google.inject.Injector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ratpack.exec.Blocking;
 import ratpack.handling.Context;
 import ratpack.handling.Handler;
 import ratpack.jackson.Jackson;
@@ -44,8 +45,8 @@ public class LoginHandler<T> implements Handler {
     public void handle(Context context) throws Exception {
         try {
             final T credential = config.getInput(context);
-            context.blocking(
-                () -> config.authenticate(injector, credential)
+            Blocking.get(
+                    () -> config.authenticate(injector, credential)
             ).onError(t -> {
                 if (t.getClass().equals(AuthenticationFailed.class)) {
                     AuthenticationFailed failure = (AuthenticationFailed) t;
