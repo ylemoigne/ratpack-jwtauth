@@ -5,7 +5,7 @@ Usage
 ------
 Add the module to ratpack module through guice :
 
-        bindingsSpec.add(JsonWebTokenModule.class, config -> {
+        bindingsSpec.add(JWTAuthModule.class, config -> {
             config.secret("someSalt");
             config.header("X-Authentication");
             config.authentication("default", UserRepository.class, AuthForm.class, InputType.JSON);
@@ -41,5 +41,6 @@ Gradle
 
 Changelog.
 ------
-0.1 : Initial Release
-0.2 : Add ability for authentication function to return a custom http status code. Add ability to provide authentication function through injected class.
+* 0.1 : Initial Release
+* 0.2 : Add ability for authentication function to return a custom http status code. Add ability to provide authentication function through injected class.
+* 0.3 : upgrade to Ratpack 0.9.19
