@@ -44,9 +44,8 @@ public class LoginHandler<T> implements Handler {
     @Override
     public void handle(Context context) throws Exception {
         try {
-            final T credential = config.getInput(context);
             Blocking.get(
-                    () -> config.authenticate(injector, credential)
+                    () -> config.authenticate(injector, config.getInput(context))
             ).onError(t -> {
                 if (t.getClass().equals(AuthenticationFailed.class)) {
                     AuthenticationFailed failure = (AuthenticationFailed) t;
