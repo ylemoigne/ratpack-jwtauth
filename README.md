@@ -1,3 +1,7 @@
+# Discontinued
+
+As the excellent PAC4J lib (http://www.pac4j.org/#1 , https://github.com/pac4j/pac4j) now support JWT and ratpack provide good integration (http://ratpack.io/manual/current/pac4j.html#pac4j), I will not maintain this module.
+
 # ratpack-jwtauth
 Provide an easy to use Json Web Token authentication
 
